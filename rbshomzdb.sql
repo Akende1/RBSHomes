@@ -1,98 +1,97 @@
--- Users Table
+-- USERS TABLE
 CREATE TABLE Users (
-    UserID INT AUTO_INCREMENT PRIMARY KEY,
-    FullName VARCHAR(255) NOT NULL,
-    Email VARCHAR(255) UNIQUE NOT NULL,
-    PasswordHash VARCHAR(255) NOT NULL,
-    PhoneNumber VARCHAR(15),
-    NRCNumber VARCHAR(20) UNIQUE,
-    Role ENUM('Owner', 'Customer', 'ListingAgent') NOT NULL,
-    ProfilePicture VARCHAR(255),
-    RegistrationDate TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+    user_id INT AUTO_INCREMENT PRIMARY KEY,
+    first_name VARCHAR(50) NOT NULL,
+    last_name VARCHAR(50) NOT NULL,
+    email VARCHAR(100) UNIQUE NOT NULL,
+    password VARCHAR(255) NOT NULL,
+    phone_number VARCHAR(15),
+    role ENUM('Owner', 'Customer', 'ListingAgent', 'CommunityUser') NOT NULL,
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
 );
 
--- Properties Table
+-- PROPERTIES TABLE
 CREATE TABLE Properties (
-    PropertyID INT AUTO_INCREMENT PRIMARY KEY,
-    OwnerID INT NOT NULL,
-    AgentID INT,
-    Title VARCHAR(255) NOT NULL,
-    Description TEXT,
-    PropertyType ENUM('House', 'Apartment', 'Commercial', 'Land') NOT NULL,
-    TransactionType ENUM('Sale', 'Rent') NOT NULL,
-    Price DECIMAL(15, 2) NOT NULL,
-    Currency ENUM('ZMW', 'USD') DEFAULT 'ZMW',
-    Location VARCHAR(255) NOT NULL,
-    City VARCHAR(100) NOT NULL,
-    Province VARCHAR(100) NOT NULL,
-    Features JSON,
-    AvailabilityStatus ENUM('Available', 'Sold', 'Rented') DEFAULT 'Available',
-    DateListed TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-    FOREIGN KEY (OwnerID) REFERENCES Users(UserID),
-    FOREIGN KEY (AgentID) REFERENCES Users(UserID)
+    property_id INT AUTO_INCREMENT PRIMARY KEY,
+    owner_id INT,
+    agent_id INT,
+    title VARCHAR(255) NOT NULL,
+    description TEXT,
+    price DECIMAL(10,2),
+    property_type ENUM('House', 'Apartment', 'Commercial', 'Land') NOT NULL,
+    transaction_type ENUM('Sale', 'Rent') NOT NULL,
+    location VARCHAR(255),
+    status ENUM('Available', 'Sold', 'Rented') DEFAULT 'Available',
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    FOREIGN KEY (owner_id) REFERENCES Users(user_id),
+    FOREIGN KEY (agent_id) REFERENCES Users(user_id)
 );
 
--- Property Images Table
+-- PROPERTY IMAGES TABLE
 CREATE TABLE PropertyImages (
-    ImageID INT AUTO_INCREMENT PRIMARY KEY,
-    PropertyID INT NOT NULL,
-    ImageURL VARCHAR(255) NOT NULL,
-    FOREIGN KEY (PropertyID) REFERENCES Properties(PropertyID)
+    image_id INT AUTO_INCREMENT PRIMARY KEY,
+    property_id INT,
+    image_url VARCHAR(255) NOT NULL,
+    FOREIGN KEY (property_id) REFERENCES Properties(property_id)
 );
 
--- Transactions Table
+-- TRANSACTIONS TABLE
 CREATE TABLE Transactions (
-    TransactionID INT AUTO_INCREMENT PRIMARY KEY,
-    PropertyID INT NOT NULL,
-    CustomerID INT NOT NULL,
-    AgentID INT,
-    TransactionType ENUM('Sale', 'Rent') NOT NULL,
-    TransactionAmount DECIMAL(15, 2) NOT NULL,
-    Currency ENUM('ZMW', 'USD') DEFAULT 'ZMW',
-    TransactionDate TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-    FOREIGN KEY (PropertyID) REFERENCES Properties(PropertyID),
-    FOREIGN KEY (CustomerID) REFERENCES Users(UserID),
-    FOREIGN KEY (AgentID) REFERENCES Users(UserID)
+    transaction_id INT AUTO_INCREMENT PRIMARY KEY,
+    property_id INT,
+    customer_id INT,
+    agent_id INT,
+    amount DECIMAL(10,2),
+    transaction_date TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    status ENUM('Pending', 'Completed', 'Failed') DEFAULT 'Pending',
+    FOREIGN KEY (property_id) REFERENCES Properties(property_id),
+    FOREIGN KEY (customer_id) REFERENCES Users(user_id),
+    FOREIGN KEY (agent_id) REFERENCES Users(user_id)
 );
 
--- Reviews Table
-CREATE TABLE Reviews (
-    ReviewID INT AUTO_INCREMENT PRIMARY KEY,
-    PropertyID INT,  -- Nullable if the review is about a community
-    CommunityName VARCHAR(255),  -- Nullable if the review is about a specific property
-    ReviewerID INT NOT NULL,  -- Refers to the user writing the review
-    Rating INT CHECK (Rating BETWEEN 1 AND 5),
-    ReviewText TEXT,
-    ReviewCategory ENUM('Property', 'Community') DEFAULT 'Property',
-    CommuteTime TEXT,  -- Optional details specific to community reviews
-    NearbyPlaces TEXT,  -- Includes chill places, night life, etc.
-    NearbySchools TEXT, -- Details about nearby schools
-    ReviewDate TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-    FOREIGN KEY (PropertyID) REFERENCES Properties(PropertyID),
-    FOREIGN KEY (ReviewerID) REFERENCES Users(UserID)
-);
-
--- Bookings Table
-CREATE TABLE Bookings (
-    BookingID INT AUTO_INCREMENT PRIMARY KEY,
-    PropertyID INT NOT NULL,
-    CustomerID INT NOT NULL,
-    AgentID INT,
-    BookingDate TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-    AppointmentDate DATETIME NOT NULL,
-    Status ENUM('Pending', 'Confirmed', 'Cancelled') DEFAULT 'Pending',
-    FOREIGN KEY (PropertyID) REFERENCES Properties(PropertyID),
-    FOREIGN KEY (CustomerID) REFERENCES Users(UserID),
-    FOREIGN KEY (AgentID) REFERENCES Users(UserID)
-);
-
--- Payments Table
+-- PAYMENTS TABLE
 CREATE TABLE Payments (
-    PaymentID INT AUTO_INCREMENT PRIMARY KEY,
-    TransactionID INT NOT NULL,
-    PaymentDate TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-    Amount DECIMAL(15, 2) NOT NULL,
-    Currency ENUM('ZMW', 'USD') DEFAULT 'ZMW',
-    PaymentMethod ENUM('Bank Transfer', 'Mobile Money', 'Credit Card') NOT NULL,
-    FOREIGN KEY (TransactionID) REFERENCES Transactions(TransactionID)
+    payment_id INT AUTO_INCREMENT PRIMARY KEY,
+    transaction_id INT,
+    payment_method ENUM('MobileMoney', 'BankTransfer', 'CreditCard') NOT NULL,
+    amount DECIMAL(10,2),
+    payment_date TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    FOREIGN KEY (transaction_id) REFERENCES Transactions(transaction_id)
+);
+
+-- SHARED RENT TABLE
+CREATE TABLE SharedRent (
+    shared_rent_id INT AUTO_INCREMENT PRIMARY KEY,
+    property_id INT,
+    tenant_1_id INT,
+    tenant_2_id INT,
+    preferences TEXT,
+    status ENUM('Pending', 'Approved') DEFAULT 'Pending',
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    FOREIGN KEY (property_id) REFERENCES Properties(property_id),
+    FOREIGN KEY (tenant_1_id) REFERENCES Users(user_id),
+    FOREIGN KEY (tenant_2_id) REFERENCES Users(user_id)
+);
+
+-- COMMUNITY SECTION TABLE
+CREATE TABLE CommunityPosts (
+    post_id INT AUTO_INCREMENT PRIMARY KEY,
+    user_id INT,
+    title VARCHAR(255),
+    content TEXT,
+    location VARCHAR(255),
+    tags VARCHAR(100),  -- For categories like 'Schools', 'Commute', 'Safety', etc.
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    FOREIGN KEY (user_id) REFERENCES Users(user_id)
+);
+
+-- COMMUNITY COMMENTS TABLE
+CREATE TABLE CommunityComments (
+    comment_id INT AUTO_INCREMENT PRIMARY KEY,
+    post_id INT,
+    user_id INT,
+    comment TEXT,
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    FOREIGN KEY (post_id) REFERENCES CommunityPosts(post_id),
+    FOREIGN KEY (user_id) REFERENCES Users(user_id)
 );
